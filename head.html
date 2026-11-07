@@ -1,0 +1,133 @@
+<title>Hopper Arcade</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one portrait screen. Monitor (top third) / thumb pad or vintage keyboard (middle) / slim switch bar (bottom). */
+:root{
+  --bg:#030302;
+  --glass:#060402;
+  --phos-rgb:232,176,44;
+  --phos:rgb(var(--phos-rgb));
+  --text:rgba(var(--phos-rgb),.82);
+  --mute:rgba(var(--phos-rgb),.42);
+  --line:rgba(var(--phos-rgb),.18);
+  --line-strong:rgba(var(--phos-rgb),.5);
+  --fill:rgba(var(--phos-rgb),.035);
+  --press:rgba(var(--phos-rgb),.16);
+  --font-term:"VT323",Menlo,"Courier New",monospace;
+  --font-ui:"IBM Plex Mono",Menlo,"Courier New",monospace;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);overflow:hidden;overscroll-behavior:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:none}
+[hidden]{display:none!important}
+button:focus-visible{outline:1px dashed var(--phos);outline-offset:2px}
+
+#app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px 4px}
+
+/* Monitor */
+.monitor{flex:0 0 auto;display:flex;justify-content:center}
+.frame{width:100%;border:1px solid var(--line);border-radius:16px;padding:4px 4px 4px;display:flex;flex-direction:column;gap:5px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.6) inset}
+.frame-top{display:flex;align-items:center;justify-content:space-between;font:500 9px/1 var(--font-ui);letter-spacing:.18em;color:var(--mute);text-transform:uppercase;padding-inline:4px}
+.led{width:6px;height:6px;border-radius:50%;background:var(--phos);box-shadow:0 0 6px var(--phos)}
+.crt{position:relative;padding:2px 3px;border-radius:12px/16px;overflow:hidden;background:var(--glass);
+  box-shadow:inset 0 0 28px rgba(var(--phos-rgb),.07),inset 0 0 2px rgba(var(--phos-rgb),.25)}
+#scr{display:block;width:100%;height:100%;
+  filter:drop-shadow(0 0 1.2px rgba(var(--phos-rgb),.85)) drop-shadow(0 0 5px rgba(var(--phos-rgb),.3))}
+.scan{position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(120% 95% at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%),
+    repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.26) 2px 3px)}
+
+/* Controls */
+.controls{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-top:10px}
+.strip{display:flex;justify-content:space-between;align-items:center;font:500 9px/1 var(--font-ui);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);padding:2px 4px 8px}
+.pane{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+
+.pad-space{flex:1;min-height:0}
+/* left 2/3: LEFT + RIGHT squares; right 1/3: HOP over BACK. Squares cap near 1" (about 154px on iPhone). */
+.pad{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,154px));justify-content:space-between;
+  grid-template-areas:"l r u" "l r d";gap:12px;padding-bottom:10px}
+.pad .pb{aspect-ratio:1;width:100%;height:auto;border:1.5px solid var(--line-strong);border-radius:18px;background:var(--fill)}
+.pad [data-act="Left"]{grid-area:l;align-self:center}
+.pad [data-act="Right"]{grid-area:r;align-self:center}
+.pad [data-act="Up"]{grid-area:u;align-self:end}
+.pad [data-act="Down"]{grid-area:d;align-self:start}
+.pb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:20px/1 var(--font-term);letter-spacing:.14em;color:var(--text);transition:background .06s}
+.pb svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
+.pb.on{background:var(--press);color:var(--phos);box-shadow:inset 0 0 26px rgba(var(--phos-rgb),.28)}
+
+.kbd{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;padding-bottom:6px}
+.krow{flex:1;display:flex;gap:4px;min-height:0}
+.key{flex:var(--w,1) 1 0;min-width:0;position:relative;border:1px solid var(--line-strong);border-radius:6px;background:var(--fill);
+  font:19px/1 var(--font-term);color:var(--text);display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden}
+.key.sm{font-size:14px;letter-spacing:.04em}
+.key.mod{background:rgba(var(--phos-rgb),.07);border-color:var(--line)}
+.key.on{background:var(--press);color:var(--phos)}
+.key.latched{background:rgba(var(--phos-rgb),.3);color:#000;border-color:var(--phos)}
+.key .lt{position:absolute;top:4px;right:4px;width:4px;height:4px;border-radius:50%;background:var(--line)}
+.key .lt.lit{background:var(--phos);box-shadow:0 0 5px var(--phos)}
+.leds{display:flex;gap:12px;align-items:center}
+.leds span{display:inline-flex;gap:5px;align-items:center}
+.leds i{width:5px;height:5px;border-radius:50%;background:var(--line);display:inline-block}
+.leds i.lit{background:var(--phos);box-shadow:0 0 5px var(--phos)}
+#readout{font-variant-numeric:tabular-nums;color:var(--text)}
+
+/* Switch bar */
+.bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:6px;padding-bottom:env(safe-area-inset-bottom,0px);border-top:1px solid var(--line)}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:999px;overflow:hidden}
+.seg button,.chip{font:500 10px/1 var(--font-ui);letter-spacing:.16em;text-transform:uppercase;padding:9px 13px;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--phos);color:#000}
+.chips{display:flex;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:9px 11px}
+@media (prefers-reduced-motion:reduce){.pb{transition:none}}
+</style>
+
+<div id="app">
+  <section class="monitor" aria-label="Monochrome display">
+    <div class="frame" id="frame">
+      <div class="frame-top"><span>Monochrome display &middot; 80&times;25</span><span class="led" aria-hidden="true"></span></div>
+      <div class="crt" id="crt"><canvas id="scr" aria-label="Game screen"></canvas><div class="scan"></div></div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="pane" id="padPane">
+      <div class="strip"><span id="padName">Hopper pad</span><span id="padHint">Hold to repeat &middot; slide to switch</span></div>
+      <div class="pad-space"></div>
+      <div class="pad" id="pad">
+        <button class="pb" data-act="Left" aria-label="Left"><svg viewBox="0 0 48 48"><path d="M30 10 L14 24 L30 38 Z"/></svg>LEFT</button>
+        <button class="pb" data-act="Right" aria-label="Right"><svg viewBox="0 0 48 48"><path d="M18 10 L34 24 L18 38 Z"/></svg>RIGHT</button>
+        <button class="pb" data-act="Up" aria-label="Hop forward"><svg viewBox="0 0 48 48"><path d="M10 31 L24 15 L38 31 Z"/></svg>HOP</button>
+        <button class="pb" data-act="Down" aria-label="Retreat"><svg viewBox="0 0 48 48"><path d="M10 17 L24 33 L38 17 Z"/></svg>BACK</button>
+      </div>
+    </div>
+
+    <div class="pane" id="kbdPane" hidden>
+      <div class="strip">
+        <span class="leds"><span><i id="ledCaps"></i>Caps</span><span><i id="ledNum"></i>Num</span><span><i id="ledScrl"></i>Scrl</span></span>
+        <span>Key <span id="readout">&mdash;</span></span>
+      </div>
+      <div class="kbd" id="kbd"></div>
+    </div>
+  </section>
+
+  <nav class="bar">
+    <div class="seg" role="group" aria-label="Controls">
+      <button id="modePad" aria-pressed="true">Pad</button>
+      <button id="modeKbd" aria-pressed="false">Keys</button>
+    </div>
+    <div class="chips">
+      <button class="chip" id="sndBtn">Snd on</button>
+      <button class="chip" id="phosBtn">Green</button>
+    </div>
+  </nav>
+</div>
+
